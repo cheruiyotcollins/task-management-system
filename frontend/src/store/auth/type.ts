@@ -1,0 +1,9 @@
+export const SET_AUTH = "set_auth";
+export const SET_CURRENT_USER = "set_current_user";
+export const SET_IS_LOGGED_IN = "set_is_logged_in";
+export const LOGOUT = "logout";
+export const LOGIN_SUCCESS = "login_success";
+export const SET_ALL_USERS = "SET_ALL_USERS";
+export const SET_USERS_LOADING = "SET_USERS_LOADING";
+export const SET_USERS_ERROR = "SET_USERS_ERROR";
+export const USER_DELETED_SUCCESS = "USER_DELETED_SUCCESS";

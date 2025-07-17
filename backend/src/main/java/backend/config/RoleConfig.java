@@ -1,6 +1,9 @@
 package backend.config;
 
 
+import backend.enums.RoleName;
+import backend.model.Role;
+import backend.repository.RoleRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -27,9 +30,9 @@ public class RoleConfig implements CommandLineRunner {
             roleRepository.save(role);
         }
 
-        if(roleRepository.findByName(RoleName.ROLE_CUSTOMER).isEmpty()) {
+        if(roleRepository.findByName(RoleName.ROLE_USER).isEmpty()) {
             Role role = new Role();
-            role.setName(RoleName.ROLE_CUSTOMER);
+            role.setName(RoleName.ROLE_USER);
             roleRepository.save(role);
         }
     }
