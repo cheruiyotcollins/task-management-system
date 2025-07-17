@@ -39,15 +39,5 @@ public class WebConfig implements WebMvcConfigurer {
         registry
                 .addResourceHandler("/profile-pictures/**")
                 .addResourceLocations("file:uploads/profile-pictures/");
-
-        // Handler for product images
-        registry
-                .addResourceHandler("/product-images/**")
-                .addResourceLocations("file:product-images/");
-
-        // Handler for carousel images
-        registry
-                .addResourceHandler("/carousel-images/**")
-                .addResourceLocations("file:uploads/carousel-images/");
     }
 }

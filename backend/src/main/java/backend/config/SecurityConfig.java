@@ -69,8 +69,6 @@ public class SecurityConfig {
                                 .requestMatchers("/swagger-ui/**").permitAll()
                                 .requestMatchers("/v3/**").permitAll()
                                 .requestMatchers("/profile-pictures/**").permitAll()
-                                .requestMatchers("/product-images/**").permitAll()
-                                .requestMatchers("/carousel-images/**").permitAll()
                                 .requestMatchers(HttpMethod.GET, "/api/v1/carousel").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/v1/users/auth/signup").permitAll()
                                 .requestMatchers(HttpMethod.POST, "/api/v1/users/auth/signin").permitAll()
