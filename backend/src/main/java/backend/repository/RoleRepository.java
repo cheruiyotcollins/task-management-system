@@ -1,6 +1,5 @@
 package backend.repository;
 
-
 import backend.enums.RoleName;
 import backend.model.Role;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,6 +1,5 @@
 package backend.model;
 
-
 import backend.enums.RoleName;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

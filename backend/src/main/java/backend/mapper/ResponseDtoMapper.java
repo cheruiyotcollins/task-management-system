@@ -1,6 +1,5 @@
 package backend.mapper;
 
-
 import backend.dto.ResponseDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

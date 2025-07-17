@@ -68,6 +68,7 @@ public class User {
 
     private String profileImagePath;
 
+    private boolean cloud;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

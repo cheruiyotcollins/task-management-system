@@ -1,6 +1,5 @@
 package backend.security;
 
-
 import backend.enums.RoleName;
 import backend.model.Role;
 import backend.model.User;
@@ -58,4 +57,5 @@ public class CurrentUserV2 {
         log.debug("Mapped UserPrincipal to User: {}", user);
         return user;
     }
+
 }

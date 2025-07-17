@@ -1,9 +1,8 @@
 package backend.enums;
 
 public enum RoleName {
-
-    ROLE_ADMIN,
-    ROLE_USER;
+    ADMIN,
+    USER;
 
     // Example getter for the enum name as a string
     public String getRoleName() {

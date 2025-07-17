@@ -1,6 +1,5 @@
 package backend.security;
 
-
 import backend.exception.ResourceNotFoundException;
 import backend.model.User;
 import backend.repository.UserRepository;

@@ -1,14 +1,13 @@
 package backend.security;
 
-import backend.model.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import backend.model.User;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,9 +19,6 @@ public class UserPrincipal implements UserDetails {
 
     @EqualsAndHashCode.Include
     private final Long id;
-
-    private final Long customerId;
-
     private final String name;
     private final String username;
     private final String email;
@@ -34,7 +30,6 @@ public class UserPrincipal implements UserDetails {
 
     public static UserPrincipal create(User user) {
         return new UserPrincipal(
-                user.getUserId(),
                 user.getUserId(),
                 user.getFullName(),
                 user.getUsername(),

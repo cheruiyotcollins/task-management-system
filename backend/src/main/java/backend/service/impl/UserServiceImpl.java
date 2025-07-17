@@ -1,28 +1,28 @@
 package backend.service.impl;
 
 import backend.config.AppProperties;
-import backend.enums.RoleName;
+import backend.dto.*;
+import backend.model.Role;
+import backend.model.User;
+import backend.repository.RoleRepository;
+import backend.repository.UserRepository;
 import backend.exception.DuplicateContactException;
 import backend.exception.DuplicateEmailException;
 import backend.exception.DuplicateUsernameException;
 import backend.exception.ResourceNotFoundException;
-import backend.mapper.ResponseDtoMapper;
 import backend.mapper.UserMapper;
 import backend.security.JwtTokenProvider;
 import backend.security.UserPrincipal;
 import backend.service.UserService;
-import backend.service.utils.PhoneNumberEditor;
-import backend.dto.*;
-
-import backend.model.*;
-import backend.repository.*;
+import backend.mapper.ResponseDtoMapper;
+import backend.services.components.utils.PhoneNumberEditor;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -37,6 +37,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import backend.enums.RoleName;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,7 +47,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.Principal;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -68,9 +71,6 @@ public class UserServiceImpl implements UserService {
     @Autowired
     UserMapper userMapper;
 
-    @Value("${password.length}")
-    private String length;
-
     @Transactional(readOnly = true)
     @Override
     public void validateUniqueUser(SignUpRequestDto signUpRequestDto) {
@@ -81,7 +81,7 @@ public class UserServiceImpl implements UserService {
         );
 
         if (!conflicts.isEmpty()) {
-            User conflict = conflicts.getFirst();
+            User conflict = conflicts.getFirst(); // Get the first conflict.
             if (conflict.getEmail().equalsIgnoreCase(signUpRequestDto.getEmail())) {
                 throw new DuplicateEmailException("Email '" + signUpRequestDto.getEmail() + "' is already registered!");
             } else if (conflict.getUsername().equalsIgnoreCase(signUpRequestDto.getUsername())){
@@ -106,7 +106,7 @@ public class UserServiceImpl implements UserService {
                 }
                 Path filePath = uploadPath.resolve(fileName);
                 Files.copy(profileImage.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-                imagePath = "profile-pictures/" + fileName;
+                imagePath = "profile-pictures/" + fileName;  // Store relative path
             } catch (IOException e) {
                 log.error("Image upload failed", e);
                 return responseDtoSetter.responseDtoSetter(HttpStatus.INTERNAL_SERVER_ERROR, "Image upload failed.");
@@ -114,9 +114,11 @@ public class UserServiceImpl implements UserService {
         }
 
         String hashedPassword = passwordEncoder.encode(signUpRequestDto.getPassword());
+        String generatedOtp = String.format("%06d", new Random().nextInt(1_000_000));
+        Instant otpExpiryTime = Instant.now().plus(5, ChronoUnit.MINUTES);
 
-        boolean isAdmin = signUpRequestDto.getRole() != null &&
-                signUpRequestDto.getRole().equalsIgnoreCase("ROLE_ADMIN");
+        // Default to USER role
+        boolean isAdmin = false; // Remove role check from frontend
 
         User.UserBuilder userBuilder = User.builder()
                 .email(signUpRequestDto.getEmail())
@@ -124,41 +126,42 @@ public class UserServiceImpl implements UserService {
                 .fullName(signUpRequestDto.getFullName())
                 .username(signUpRequestDto.getEmail())
                 .contact(PhoneNumberEditor.resolveNumber(signUpRequestDto.getContact()))
+                .otp(true)
                 .gender(signUpRequestDto.getGender())
-                .profileImagePath(imagePath);
+                .profileImagePath(imagePath)
+                .generatedOtp(generatedOtp)
+                .otpExpiry(otpExpiryTime);
 
-        User userToRegister;
+        User userToRegister = userBuilder
+                .firstLogin(false)
+                .build();
 
-        if (isAdmin) {
-            userToRegister = userBuilder
-                    .firstLogin(true)
-                    .build();
+        // Always set USER role
+        Role userRole = roleRepository.findByName(RoleName.valueOf("USER"))
+                .orElseThrow(() -> new RuntimeException("User role not found!"));
+        userToRegister.setRoles(Set.of(userRole));
 
-            Role adminRole = roleRepository.findByName(RoleName.valueOf("ROLE_ADMIN"))
-                    .orElseThrow(() -> new RuntimeException("Admin role not found!"));
-            userToRegister.setRoles(Set.of(adminRole));
-        } else {
-            userToRegister = userBuilder
-                    .firstLogin(false)
-                    .build();
-
-            Role userRole = roleRepository.findByName(RoleName.valueOf("ROLE_USER"))
-                    .orElseThrow(() -> new RuntimeException("User role not found!"));
-            userToRegister.setRoles(Set.of(userRole));
-        }
-
+        // Only save the user
         userRepository.save(userToRegister);
 
-        log.info("Registered user: {}", userToRegister);
-
-        return new ResponseEntity<>(
+        return ResponseEntity.ok(
                 ResponseDto.builder()
                         .status(HttpStatus.OK)
+                        .description("User registered successfully")
                         .payload(signUpRequestDto)
-                        .description("User registered successfully.")
-                        .build(),
-                HttpStatus.OK
+                        .build()
         );
+    }
+    @NotNull
+    private static Map<String, String> getStringStringMap(SignUpRequestDto signUpRequestDto, String generatedOtp) {
+        Map<String, String > messageMap = new HashMap<>();
+        messageMap.put("subject", "OTP(Do not disclose!)");
+        messageMap.put("receiverName", signUpRequestDto.getFullName());
+        messageMap.put("templateName", "otp");
+        messageMap.put("to", signUpRequestDto.getEmail());
+        messageMap.put("otp", generatedOtp);
+        messageMap.put("message", "You have been registered to our store. We are excited to have you as our customer.");
+        return messageMap;
     }
 
     @Override
@@ -172,8 +175,10 @@ public class UserServiceImpl implements UserService {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
         User user = userRepository.findById(userPrincipal.getId()).orElseThrow();
 
+        // Check if this is the user's first login
         boolean firstLogin = user.getFirstLogin();
 
+        // If not the first login, generate a token
         String generateAccessToken = jwtTokenProvider.generateAccessToken(authentication, user.getUsername());
         String generateRefreshToken = jwtTokenProvider.generateRefreshToken(authentication, user.getUsername());
         String profileImageFileName = user.getProfileImagePath();
@@ -193,7 +198,7 @@ public class UserServiceImpl implements UserService {
                     .status(HttpStatus.NOT_FOUND)
                     .message("No refresh token found!")
                     .build();
-        } else {
+        }else {
             token = token.substring("Bearer ".length());
             if (token == null) {
                 return LoginResponseDto.builder()
@@ -222,14 +227,17 @@ public class UserServiceImpl implements UserService {
                             authorities
                     );
 
-                    return LoginResponseDto.builder()
-                            .status(HttpStatus.OK)
-                            .accessToken(jwtTokenProvider.generateAccessToken(authentication, user.getUsername()))
-                            .refreshToken(jwtTokenProvider.generateRefreshToken(authentication, user.getUsername()))
-                            .roles(user.getRoles())
-                            .object(user)
-                            .build();
-                } catch(Exception e) {
+
+
+                        return LoginResponseDto.builder()
+                                .status(HttpStatus.OK)
+                                       .accessToken(jwtTokenProvider.generateAccessToken(authentication, user.getUsername()))
+                                       .refreshToken(jwtTokenProvider.generateRefreshToken(authentication, user.getUsername()))
+                                       .roles(user.getRoles())
+                                       .object(user)
+                                       .build();
+
+                }catch(Exception e){
                     return LoginResponseDto.builder()
                             .status(HttpStatus.BAD_REQUEST)
                             .message(e.getMessage())
@@ -256,11 +264,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ResponseEntity<ResponseDto> findUserById(long userId) {
+
         try {
             Optional<User> userOptional = userRepository.findById(userId);
 
             if (userOptional.isPresent()) {
                 User user= userOptional.get();
+                //todo use UserDto and mapper
                 UserDto userDto= userMapper.toDto(user);
                 String profileImageFileName = user.getProfileImagePath();
                 String fullProfileImageUrl = null;
@@ -273,6 +283,7 @@ public class UserServiceImpl implements UserService {
             } else {
                 return responseDtoSetter.responseDtoSetter(HttpStatus.NOT_FOUND, "User Not Found");
             }
+
         } catch (Exception e) {
             return responseDtoSetter.responseDtoSetter(HttpStatus.BAD_REQUEST, "An error occurred while retrieving user info");
         }
@@ -288,8 +299,10 @@ public class UserServiceImpl implements UserService {
             String searchTerm = "%" + searchQuery.toLowerCase() + "%";
             String roleSearchTerm = "%" + searchQuery.toUpperCase() + "%";
 
+            // Join with roles table using the existing relationship
             Join<User, Role> rolesJoin = root.join("roles", JoinType.LEFT);
 
+            // Ensure distinct results to prevent duplicates from role joins
             assert query != null;
             query.distinct(true);
 
@@ -298,6 +311,7 @@ public class UserServiceImpl implements UserService {
                     cb.like(cb.lower(root.get("email")), searchTerm),
                     cb.like(root.get("contact"), "%" + searchQuery + "%"),
                     cb.like(cb.upper(root.get("gender")), searchTerm),
+                    // Search by role name (handles ROLE_ prefix automatically)
                     cb.or(
                             cb.like(cb.upper(rolesJoin.get("name")), roleSearchTerm),
                             cb.like(
@@ -335,12 +349,15 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public ResponseEntity<ResponseDto> deleteById(long id) {
-        try {
+    public ResponseEntity<ResponseDto> deleteById(long id){
+
+        try{
             userRepository.deleteById(id);
             return responseDtoSetter.responseDtoSetter(HttpStatus.ACCEPTED,"User deleted successfully");
-        } catch(Exception e) {
+
+        }catch(Exception e){
             return responseDtoSetter.responseDtoSetter(HttpStatus.BAD_REQUEST,"User with that id not found");
+
         }
     }
 
@@ -356,14 +373,16 @@ public class UserServiceImpl implements UserService {
             }
             CurrentUserDto currentUserDto = (toCurrentUserDto(user,fullProfileImageUrl));
             return responseDtoSetter.responseDtoSetter(HttpStatus.OK,"Current User logged in", currentUserDto);
+
         } catch (ResourceNotFoundException ex) {
             return responseDtoSetter.responseDtoSetter(HttpStatus.NOT_FOUND, ex.getMessage());
+
         } catch (Exception ex) {
             return responseDtoSetter.responseDtoSetter(HttpStatus.INTERNAL_SERVER_ERROR,"An error occurred while fetching the user details");
         }
     }
-
-    private CurrentUserDto toCurrentUserDto(User user, String fullProfileImageUrl) {
+    //todo use UserDto and mapper
+    private CurrentUserDto toCurrentUserDto(User user, String fullProfileImageUrl){
         return CurrentUserDto.builder()
                 .name(user.getFullName())
                 .gender(user.getGender())
@@ -373,7 +392,7 @@ public class UserServiceImpl implements UserService {
                 .role(user.getRoles()
                         .stream()
                         .map(role -> role.getName().getRoleName())
-                        .collect(Collectors.joining(", ")))
+                        .collect(Collectors.joining(", "))) // Join the roles into a single String
                 .build();
     }
 
@@ -381,6 +400,7 @@ public class UserServiceImpl implements UserService {
     public ResponseEntity<ResponseDto> updatePassword(String newPassword, Principal principal) {
         User user = userRepository.findByUsername(principal.getName()).orElseThrow();
         user.setPassword(passwordEncoder.encode(newPassword));
+        // user first login is being set to false here
         user.setFirstLogin(false);
         userRepository.save(user);
         return responseDtoSetter.responseDtoSetter(HttpStatus.OK,"Password updated successfully.");
@@ -388,18 +408,21 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ResponseEntity<ResponseDto> forgotPassword(String email) {
+        // Find the user by email
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
 
+        // Generate a verification code (e.g., a 6-digit code)
         String verificationCode = String.format("%06d", new Random().nextInt(999999));
 
+        // Save the verification code and expiration time to the user's account
         user.setResetCode(verificationCode);
-        user.setResetCodeExpiry(LocalDateTime.now().plusMinutes(15));
+        user.setResetCodeExpiry(LocalDateTime.now().plusMinutes(15)); // Code expires in 15 minutes
         userRepository.save(user);
 
+        // Send email with the code
         String subject = "Password Reset Request";
         String message = "Your password reset code is " + verificationCode + ". This code expires in 15 minutes.";
-
 
         return responseDtoSetter.responseDtoSetter(HttpStatus.OK,"Password reset code sent to email.");
     }
@@ -413,6 +436,7 @@ public class UserServiceImpl implements UserService {
             return responseDtoSetter.responseDtoSetter(HttpStatus.BAD_REQUEST,"Invalid or expired reset code.");
         }
 
+        // Update the user's password
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setResetCode(null);
         user.setResetCodeExpiry(null);
@@ -423,14 +447,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getCurrentAuthenticatedUser() {
+        // Retrieve the current authentication from the SecurityContext
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated() || authentication instanceof AnonymousAuthenticationToken) {
             throw new IllegalStateException("No authenticated user found");
         }
 
+        // Get the username (or principal) from the authentication
         String username = authentication.getName();
 
+        // Retrieve the user from the repository
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
     }
@@ -463,6 +490,7 @@ public class UserServiceImpl implements UserService {
                         Set<Role> updatedRoles = new HashSet<>();
                         updatedRoles.add(roleToAssign);
                         user.setRoles(updatedRoles);
+
                     } else {
                         return responseDtoSetter.responseDtoSetter(
                                 HttpStatus.BAD_REQUEST,
@@ -486,7 +514,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public ResponseEntity<ResponseDto> fetchroles() {
-        List<Role> roles= roleRepository.findAll();
-        return responseDtoSetter.responseDtoSetter(HttpStatus.OK,"list of all roles",roles);
+            List<Role> roles= roleRepository.findAll();
+        return responseDtoSetter.responseDtoSetter(HttpStatus.OK,"list of all roles",roles) ;
     }
+
 }

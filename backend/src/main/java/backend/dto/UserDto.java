@@ -1,12 +1,10 @@
 package backend.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import backend.enums.RoleName;
 import backend.model.Role;
 import backend.model.User;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.Set;
 import java.util.stream.Collectors;

@@ -1,7 +1,7 @@
 package backend.dto;
 
-import backend.model.Role;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import backend.model.Role;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
