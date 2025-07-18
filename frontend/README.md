@@ -91,8 +91,8 @@ git clone https://github.com/cheruiyotcollins/task-management-system.git
 cd task-manager
 
 # Install dependencies
-yarn install
+npm install
 
 # Start development server
-yarn start
+npm start
 ```
