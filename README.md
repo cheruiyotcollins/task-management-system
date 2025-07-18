@@ -42,7 +42,7 @@ This is a full-stack **Task Management System** built using **React (TypeScript)
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/your-username/task-management-system.git
+git clone https://github.com/cheruiyotcollins/task-management-system.git
 cd task-management-system
 
 
