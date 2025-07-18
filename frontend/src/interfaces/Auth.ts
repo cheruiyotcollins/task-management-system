@@ -11,7 +11,7 @@ export interface IUserDetails {
 }
 export interface IPaginatedUsersResponse {
   email: string;
-  roles: string[];
+  roles: string;
   fullName: string;
   contact: string;
   gender: string;
@@ -23,7 +23,7 @@ export interface IUser {
   userId: string;
   email: string;
   username?: string;
-  roles: string[];
+  roles: string;
   fullName: string;
   contact: string;
   gender: string;

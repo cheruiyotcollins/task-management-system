@@ -95,9 +95,7 @@ const UsersPage: React.FC = () => {
       console.log(
         `Workspaceing users: page=${pageToFetch}, size=${sizeToFetch}, sort=${sortString}, search=${searchQuery}`
       );
-      dispatch(
-        fetchAllUsers(pageToFetch, sizeToFetch, sortString, searchQuery) as any
-      );
+      dispatch(fetchAllUsers() as any);
     },
     [dispatch]
   );

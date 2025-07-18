@@ -12,35 +12,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.security.Principal;
 
 public interface UserService {
-
-    ResponseEntity<ResponseDto> register(SignUpRequestDto signUpRequestDto, MultipartFile profileImage);
-
-    @Transactional(readOnly = true)
-    void validateUniqueUser(SignUpRequestDto signUpRequestDto);
-
-    LoginResponseDto login(LoginDto loginDto);
-
-    LoginResponseDto refreshToken(HttpServletRequest request, Authentication authentication);
-
-    ResponseEntity<ResponseDto> addRole(AddRoleRequestDto addRoleRequestDto);
-
-    ResponseEntity<ResponseDto> findUserById(long userId);
-
-    ResponseEntity<ResponseDto> getAllUsers(Pageable pageable, String searchQuery);
-
-    ResponseEntity<ResponseDto> deleteById(long id);
+    JWTAuthResponseDto login(LoginDto loginDto);
+    ResponseEntity<ResponseDto> register(SignUpRequestDto signUpRequestDto);
+    ResponseEntity<ResponseDto> getAllUsers(String searchQuery);
 
     ResponseEntity<ResponseDto> getCurrentUser(String email);
 
-    ResponseEntity<ResponseDto> updatePassword(String newPassword, Principal principal);
-
-    ResponseEntity<ResponseDto> forgotPassword(String email);
-
-    ResponseEntity<ResponseDto> resetPassword(String email, String resetCode, String newPassword);
-
-    User getCurrentAuthenticatedUser();
-
-    ResponseEntity<?> updateUser(Long userId, SignUpRequestDto signUpRequestDto);
-
-    ResponseEntity<ResponseDto> fetchroles();
 }

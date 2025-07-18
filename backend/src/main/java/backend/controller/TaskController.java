@@ -5,11 +5,14 @@ import backend.dto.TaskResponse;
 import backend.enums.TaskStatus;
 import backend.security.CurrentUser;
 import backend.security.UserPrincipal;
+import backend.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -46,13 +49,7 @@ public class TaskController {
         return ResponseEntity.ok(taskService.updateTask(id, request, currentUser));
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTask(
-            @PathVariable Long id,
-            @CurrentUser UserPrincipal currentUser) {
-        taskService.deleteTask(id, currentUser);
-        return ResponseEntity.noContent().build();
-    }
+
 
     @PatchMapping("/{id}/status")
     public ResponseEntity<TaskResponse> updateTaskStatus(
@@ -60,5 +57,12 @@ public class TaskController {
             @RequestParam TaskStatus status,
             @CurrentUser UserPrincipal currentUser) {
         return ResponseEntity.ok(taskService.updateTaskStatus(id, status, currentUser));
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTask(
+            @PathVariable Long id,
+            @CurrentUser UserPrincipal currentUser) {
+        taskService.deleteTask(id, currentUser);
+        return ResponseEntity.noContent().build();
     }
 }

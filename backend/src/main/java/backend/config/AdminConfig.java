@@ -31,7 +31,7 @@ public class AdminConfig implements CommandLineRunner {
     public void run(String... args) {
         log.info("Checking if an admin user exists");
 
-        boolean noAdminsExist = userRepository.countByRoleName(RoleName.ADMIN) == 0;
+        boolean noAdminsExist = userRepository.countByRole_Name(RoleName.ADMIN) == 0;
 
         if (noAdminsExist) {
             // Check if the ROLE_ADMIN role exists
@@ -42,17 +42,11 @@ public class AdminConfig implements CommandLineRunner {
             }
 
             User user = new User();
-            Set<Role> roles = new HashSet<>();
-            roles.add(adminRole);  // Add the admin role
-            user.setRoles(roles);
-
+            user.setRole(adminRole);
             user.setFullName("Admin");
             user.setEmail("admin@gmail.com");
             user.setUsername("admin");
-            user.setContact("+254700000000");
             user.setPassword(passwordEncoder.encode("password"));
-            user.setGender("Undefined");
-            user.setFirstLogin(false);
             userRepository.save(user);
             log.info("Admin user created with first login flag set to true.");
         }

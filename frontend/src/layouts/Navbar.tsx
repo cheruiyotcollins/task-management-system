@@ -45,8 +45,8 @@ const Navbar: React.FC = () => {
     return !!matchPath(path, location.pathname);
   };
 
-  const isAdmin = isLoggedIn && !isLoading && user?.roles[0] === "ADMIN";
-  const isUser = isLoggedIn && !isLoading && user?.roles[0] === "USER";
+  const isAdmin = isLoggedIn && !isLoading && user?.roles === "ADMIN";
+  const isUser = isLoggedIn && !isLoading && user?.roles === "USER";
 
   const handleLogOut = async () => {
     const result = await Swal.fire({

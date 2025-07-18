@@ -8,21 +8,15 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.hibernate.annotations.NaturalId;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.*;
 
 @Entity
 @Table(name = "users", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {
-                "username"
-        }),
-        @UniqueConstraint(columnNames = {
-                "email"
-        })
+        @UniqueConstraint(columnNames = {"username"}),
+        @UniqueConstraint(columnNames = {"email"})
 })
 @Data
-@ToString(exclude = {"roles"})
+@ToString(exclude = {"role"})
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -30,8 +24,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_id")
-    private Long userId;
+    private Long id;
 
     @NotBlank
     @Size(max = 40)
@@ -41,10 +34,6 @@ public class User {
     @Size(max = 40)
     private String username;
 
-    @NotBlank
-    @Size(max = 13)
-    private String contact;
-
     @NaturalId
     @NotBlank
     @Size(max = 40)
@@ -52,45 +41,13 @@ public class User {
     private String email;
 
     @NotBlank
-    private String gender;
-
-    @NotBlank
     @Size(max = 100)
     private String password;
 
-    private boolean otp;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "role_id", nullable = false)
+    @JsonManagedReference("user-role")
+    private Role role;
 
-    private String generatedOtp;
-
-    private Instant otpExpiry;
-
-    private String publicId;
-
-    private String profileImagePath;
-
-    private boolean cloud;
-
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    @JsonManagedReference("user-roles")
-    private Set<Role> roles = new HashSet<>();
-
-    @Column(nullable = false)
-    private Boolean firstLogin = true;
-
-    private String resetCode;
-
-    private LocalDateTime resetCodeExpiry;
-    private Instant joinedAt;
-    private Instant lastUpdated;
-    private Instant lastActive;
-
-    public boolean hasRole(String roleName) {
-        return roles != null && roles.stream()
-                .anyMatch(role -> role.getName().equals(roleName));
-    }
+    private LocalDateTime createdAt;
 }

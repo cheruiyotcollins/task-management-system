@@ -11,22 +11,45 @@ import Api from "../../common/helpers/Api";
 import { toast } from "react-toastify";
 import { AppDispatch } from "../index";
 import { AxiosError } from "axios";
-import { ITask, ITaskFilterParams, NewTaskDto } from "../../interfaces/Task";
+import {
+  ITask,
+  ITaskFilterParams,
+  NewTaskDto,
+  TaskStatus,
+} from "../../interfaces/Task";
 
-/**
- * Fetch all tasks from the API
- * @param onSuccess - Optional callback on success
- */
+export interface TaskRequest {
+  status?: TaskStatus | null;
+  assigneeId?: number | null;
+}
+
 export const getTasks =
-  (onSuccess?: () => void) => async (dispatch: AppDispatch) => {
+  (
+    taskRequest: TaskRequest & { signal?: AbortSignal } = {},
+    onSuccess?: () => void
+  ) =>
+  async (dispatch: AppDispatch) => {
     try {
-      const response = await Api.get("/tasks");
+      const token = localStorage.getItem("token");
+
+      const response = await Api.get("/tasks", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          status: taskRequest.status ?? undefined,
+          assigneeId: taskRequest.assigneeId ?? undefined,
+        },
+        signal: taskRequest.signal, // Pass the abort signal to axios
+      });
+
       const tasks = response.data.payload;
 
       dispatch({
         type: SET_TASKS,
         payload: tasks,
       });
+
       dispatch({
         type: SET_FILTERED_TASKS,
         payload: tasks,
@@ -35,11 +58,18 @@ export const getTasks =
       onSuccess?.();
       return { success: true };
     } catch (error) {
-      console.error("Error fetching tasks:", error);
+      // Check if the error was caused by an abort
       const axiosError = error as AxiosError<{
         message?: string;
         error?: string;
       }>;
+
+      // Ignore abort errors
+      if (axiosError.code === "ERR_CANCELED") {
+        return { success: false, aborted: true };
+      }
+
+      console.error("Error fetching tasks:", error);
 
       dispatch({
         type: SET_ERROR,
@@ -51,13 +81,13 @@ export const getTasks =
       });
 
       toast.error("Failed to fetch tasks");
+
       return {
         success: false,
         error: axiosError.response?.data?.message || "Failed to fetch tasks",
       };
     }
   };
-
 /**
  * Filter tasks based on parameters
  * @param filterParams - Filter criteria
@@ -210,7 +240,7 @@ export const getSingleTask =
  * @param taskData - Updated task data
  */
 export const updateTask =
-  (taskId: string, taskData: Partial<ITask>) =>
+  (taskId: number, taskData: Partial<ITask>) =>
   async (dispatch: AppDispatch) => {
     try {
       const response = await Api.put(`/tasks/${taskId}`, taskData);

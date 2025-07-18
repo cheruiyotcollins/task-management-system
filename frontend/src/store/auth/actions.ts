@@ -37,25 +37,20 @@ export const checkIfUserIsLoggedIn = () => async (dispatch) => {
 };
 export interface CustomApiError {
   message: string;
-  status?: number; // Make status optional as it might not always be present
+  status?: number;
 }
 
 export const fetchCurrentUser =
-  (
-    onSuccess: (data: any) => void, // You might want to define a more specific type for 'data'
-    onError: (err: CustomApiError) => void // <--- CHANGE THIS TYPE TO CustomApiError
-  ) =>
+  (onSuccess: (data: any) => void, onError: (err: CustomApiError) => void) =>
   async (dispatch: AppDispatch) => {
     const token = localStorage.getItem("token");
     if (!token) {
-      // If no token, it's not a session expiration, just not logged in.
-      // You might want to call onError here too if the UI expects it for non-authenticated state.
-      onError({ message: "No authentication token found.", status: 401 }); // Pass 401 for consistency if needed
+      onError({ message: "No authentication token found.", status: 401 });
       return;
     }
 
     try {
-      const response = await Api.get("/users/auth/current", {
+      const response = await Api.get("/auth/current", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -63,17 +58,14 @@ export const fetchCurrentUser =
 
       if (status === "OK" && payload) {
         onSuccess(payload);
-        // You might want to return something from the thunk, but it's not strictly necessary for Redux flow.
-        // return { success: true, user: payload }; // Only if you consume this return value
       } else {
         const message = "Unexpected response format or user not found.";
         toast.error(message);
-        onError({ message, status: response.status }); // Pass status if available from response
-        // return { success: false, error: message };
+        onError({ message, status: response.status });
       }
     } catch (error) {
       let errorMessage = "Failed to fetch user information.";
-      let errorStatus: number | undefined; // To store the HTTP status code
+      let errorStatus: number | undefined;
 
       if (axios.isAxiosError(error)) {
         errorMessage =
@@ -81,13 +73,13 @@ export const fetchCurrentUser =
           error.response?.data?.error ||
           error.message ||
           errorMessage;
-        errorStatus = error.response?.status; // Get the status code
+        errorStatus = error.response?.status;
 
         if (errorStatus === 401) {
           dispatch(logOut());
-          // IMPORTANT: Pass a structured error object here
+
           onError({ message: "Session expired.", status: 401 });
-          // return { success: false, error: errorMessage };
+
           return; // Stop execution after handling 401
         }
       }
@@ -102,11 +94,11 @@ export const fetchCurrentUser =
 export const attemptLogin =
   (credentials, onSuccess, onError) => async (dispatch) => {
     try {
-      const response = await Api.postNoToken("/users/auth/signin", credentials);
+      const response = await Api.postNoToken("/auth/login", credentials);
 
-      const { accessToken, refreshToken, currentUser } = response.data;
+      const { accessToken, currentUser } = response.data;
 
-      if (!accessToken || !refreshToken || !currentUser) {
+      if (!accessToken || !currentUser) {
         throw new Error("Authentication failed: Incomplete token/user data");
       }
 
@@ -121,7 +113,6 @@ export const attemptLogin =
 
       // Persist auth info in localStorage
       localStorage.setItem("token", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("user", JSON.stringify(user));
 
       // Dispatch auth state update
@@ -130,11 +121,9 @@ export const attemptLogin =
           isLoggedIn: true,
           currentUser: user,
           token: accessToken,
-          refreshToken: refreshToken,
         })
       );
 
-      // Allow UI to update before redirect/navigation
       setTimeout(() => {
         onSuccess();
       }, 100);
@@ -143,7 +132,6 @@ export const attemptLogin =
 
       // Clear stored auth info
       localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
       localStorage.removeItem("user");
 
       // Reset auth state
@@ -152,7 +140,6 @@ export const attemptLogin =
           isLoggedIn: false,
           currentUser: null,
           token: null,
-          refreshToken: null,
         })
       );
 
@@ -435,88 +422,52 @@ export const attemptUpdateProfile =
   };
 
 export const fetchAllUsers =
-  (page: number, size: number, sort: string, searchQuery?: string) =>
+  ({ signal }: { signal?: AbortSignal } = {}) =>
   async (dispatch: any) => {
-    // Added 'any' for dispatch type, consider more specific type if possible
     const token = localStorage.getItem("token");
     if (!token) {
       dispatch({ type: SET_USERS_ERROR, payload: "Authentication required." });
-      return;
+      return { success: false, error: "Authentication required" };
     }
 
     dispatch({ type: SET_USERS_LOADING });
 
     try {
-      // Construct the base URL
-      let url = `/users/auth?page=${page}&size=${size}&sort=${sort}`;
+      const response = await Api.get("/users", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        signal, // Add the abort signal to the request
+      });
 
-      // Conditionally add the searchQuery parameter
-      // Ensure searchQuery is not null, undefined, or an empty string after trimming whitespace
-      if (searchQuery && searchQuery.trim() !== "") {
-        url += `&search=${encodeURIComponent(searchQuery.trim())}`;
+      // Check if the request was aborted
+      if (signal?.aborted) {
+        return { success: false, aborted: true };
       }
 
-      const response = await Api.get(
-        url, // Use the dynamically constructed URL
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const {
-        status,
-        payload,
-        totalPages,
-        totalElements,
-        currentPage,
-        pageSize,
-      } = response.data;
+      const { status, payload } = response.data;
 
       if (status === "OK" && payload) {
         dispatch({
           type: SET_ALL_USERS,
           payload: {
             users: payload,
-            totalPages,
-            totalElements,
-            currentPage,
-            pageSize,
           },
         });
+        return { success: true };
       } else {
+        const errorMsg = response.data.description || "Failed to fetch users.";
         dispatch({
           type: SET_USERS_ERROR,
-          payload: response.data.description || "Failed to fetch users.",
+          payload: errorMsg,
         });
+        return { success: false, error: errorMsg };
       }
     } catch (err: any) {
-      console.error("Fetch all users error:", err);
-      const errorMsg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Unexpected error occurred.";
-      dispatch({ type: SET_USERS_ERROR, payload: errorMsg });
+      // Ignore abort errors
     }
   };
-export const updateUser = (
-  userId: string,
-  data: any,
-  onSuccess: () => void,
-  onError: () => void
-) => {
-  return async (dispatch: any) => {
-    try {
-      const response = await Api.put(`/users/auth/${userId}`, data);
-      dispatch({ type: "UPDATE_USER_SUCCESS", payload: response.data });
-      onSuccess();
-    } catch (err) {
-      dispatch({ type: "UPDATE_USER_FAILURE", payload: err });
-      onError();
-    }
-  };
-};
+
 export const deleteUser = (userId: string) => async (dispatch: AppDispatch) => {
   dispatch({ type: SET_USERS_LOADING });
   try {

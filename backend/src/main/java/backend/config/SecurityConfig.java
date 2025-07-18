@@ -61,87 +61,32 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // ✅ Apply CORS config
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests((authorize) ->
-                             authorize
-                                // Publicly accessible endpoints.
-                                .requestMatchers("/swagger-ui/**").permitAll()
-                                .requestMatchers("/v3/**").permitAll()
-                                .requestMatchers("/profile-pictures/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/carousel").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/api/v1/users/auth/signup").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/api/v1/users/auth/signin").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/users/auth/current").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/products").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/products/{id}").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/api/v1/orders**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/v1/orders/**").permitAll()
-                                .requestMatchers(HttpMethod.POST, "/mobile-money/**").permitAll()
+                .authorizeHttpRequests(authorize -> authorize
+                        // Public auth endpoints
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
 
-                                                             // ------------ Endpoints requiring specific roles. ------------
+                        // Current user endpoint must be authenticated
+                        .requestMatchers(HttpMethod.GET, "/api/auth/current").authenticated()
 
-                                //  User endpoints.
-                                .requestMatchers("/api/v1/users/auth/current").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN", "ROLE_CUSTOMER")
-                                .requestMatchers("/api/v1/users/auth/update").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.GET, "/api/v1/users/auth").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.GET, "/api/v1/users/auth/id/*").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers("/api/v1/users/auth/new/role").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
+                        // Task endpoints - accessible to both USER and ADMIN roles
+                        .requestMatchers("/api/tasks/**").hasAnyAuthority("ADMIN", "USER")
 
+                        // User management endpoints - only ADMIN
+                        .requestMatchers("/api/users/**").hasAuthority("ADMIN")
 
-//                                     /{productId}/like
-                                //  Product endpoints.
-                                .requestMatchers(HttpMethod.POST, "/api/v1/products/{id}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.PUT, "/api/v1/products/{id}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.DELETE, "/api/v1/products/{id}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.PATCH, "/api/v1/products/{id}/restock").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.PATCH, "/api/v1/products/{productId}/like").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN,", "ROLE_CUSTOMER")
-                                .requestMatchers(HttpMethod.PATCH, "/api/v1/products/{productId}/dislike").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN,", "ROLE_CUSTOMER")
+                        // Swagger and docs (optional)
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
-//                                     /api/v1/carousel
-                                // Carousel endpoints.
-                                .requestMatchers(HttpMethod.POST, "/api/v1/carousel/multipart/form-data").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.PUT, "/api/v1/carousel/order").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.DELETE, "/api/v1/carousel/{id}").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN")
-
-//                                     /api/v1/customers
-                                //  Customer endpoints.
-                                .requestMatchers(HttpMethod.POST, "/api/v1/customers").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.GET, "/api/v1/customers/{id}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.GET, "/api/v1/customers").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.PUT, "/api/v1/customers/{id}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN","ROLE_CUSTOMER")
-                                .requestMatchers(HttpMethod.DELETE, "/api/v1/customers/{id}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-
-                                // Cart endpoints.
-                                .requestMatchers(HttpMethod.POST, "/api/v1/carts").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_CUSTOMER")
-                                .requestMatchers(HttpMethod.GET, "/api/v1/carts").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.GET, "/api/v1/carts/customer").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN","ROLE_CUSTOMER")
-                                .requestMatchers(HttpMethod.GET, "/api/v1/carts/{cartId}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN","ROLE_CUSTOMER")
-                                .requestMatchers(HttpMethod.DELETE, "/api/v1/carts/remove/{cartItemId}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN","ROLE_CUSTOMER")
-                                .requestMatchers(HttpMethod.DELETE, "/api/v1/carts/clear/{cartId}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN","ROLE_CUSTOMER")
-
-                                //  Cart items endpoints.
-                                .requestMatchers(HttpMethod.POST, "/api/v1/carts/items").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_CUSTOMER")
-                                .requestMatchers(HttpMethod.GET, "/api/v1/carts/{cartId}/{itemId}").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_CUSTOMER")
-
-                                //  Order endpoints.
-                                .requestMatchers(HttpMethod.POST, "/api/v1/orders").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_CUSTOMER")
-                                .requestMatchers(HttpMethod.GET, "/api/v1/orders/{id}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.GET, "/api/v1/orders").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.PUT, "/api/v1/orders/{id}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-                                .requestMatchers(HttpMethod.PATCH, "/api/v1/orders/{id}").hasAnyAuthority("ROLE_SUPER_ADMIN", "ROLE_ADMIN", "ROLE_CUSTOMER")
-                                .requestMatchers(HttpMethod.DELETE, "/api/v1/orders/{id}").hasAnyAuthority("ROLE_SUPER_ADMIN","ROLE_ADMIN")
-
-                                .anyRequest().authenticated()
+                        // All other requests require authentication
+                        .anyRequest().authenticated()
                 )
-                .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(authenticationEntryPoint)
-                )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-                http.addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

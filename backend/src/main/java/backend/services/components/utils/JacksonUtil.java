@@ -11,10 +11,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * @author Kibet
- * 2025/01/7
- */
+
 @Slf4j
 public class JacksonUtil {
     static ObjectMapper objectMapper = new ObjectMapper();
