@@ -20,7 +20,7 @@ import {
 
 export interface TaskRequest {
   status?: TaskStatus | null;
-  assigneeId?: number | null;
+  assigneeId?: string | null;
 }
 
 export const getTasks =
@@ -40,10 +40,10 @@ export const getTasks =
           status: taskRequest.status ?? undefined,
           assigneeId: taskRequest.assigneeId ?? undefined,
         },
-        signal: taskRequest.signal, // Pass the abort signal to axios
+        signal: taskRequest.signal,
       });
 
-      const tasks = response.data.payload;
+      const tasks = response.data; // Direct array of tasks
 
       dispatch({
         type: SET_TASKS,
@@ -58,13 +58,11 @@ export const getTasks =
       onSuccess?.();
       return { success: true };
     } catch (error) {
-      // Check if the error was caused by an abort
       const axiosError = error as AxiosError<{
         message?: string;
         error?: string;
       }>;
 
-      // Ignore abort errors
       if (axiosError.code === "ERR_CANCELED") {
         return { success: false, aborted: true };
       }
@@ -88,66 +86,39 @@ export const getTasks =
       };
     }
   };
-/**
- * Filter tasks based on parameters
- * @param filterParams - Filter criteria
- * @param callback - Optional callback
- */
+
 export const filterTasks =
-  (
-    filterParams: ITaskFilterParams & {
-      page?: number;
-      size?: number;
-    },
-    callback?: () => void
-  ) =>
+  (filterParams: ITaskFilterParams, callback?: () => void) =>
   async (dispatch: AppDispatch) => {
     try {
       const queryParams = new URLSearchParams();
 
-      // Status filtering
       if (filterParams.status) {
         queryParams.append("status", filterParams.status);
       }
 
-      // Priority filtering
       if (filterParams.priority) {
         queryParams.append("priority", filterParams.priority);
       }
 
-      // Assignee filtering
       if (filterParams.assigneeId) {
         queryParams.append("assigneeId", filterParams.assigneeId);
       }
 
-      // Search term
       if (filterParams.search) {
         queryParams.append("search", filterParams.search);
       }
 
-      // Pagination
-      if (filterParams.page) {
-        queryParams.append("page", filterParams.page.toString());
-      }
-
-      if (filterParams.size) {
-        queryParams.append("size", filterParams.size.toString());
+      if (filterParams.q) {
+        queryParams.append("q", filterParams.q);
       }
 
       const response = await Api.get(`/tasks?${queryParams.toString()}`);
-      const responseData = response.data;
+      const tasks = response.data; // Direct array of filtered tasks
 
       dispatch({
         type: SET_FILTERED_TASKS,
-        payload: {
-          tasks: responseData.payload,
-          pagination: {
-            totalPages: responseData.totalPages,
-            totalElements: responseData.totalElements,
-            currentPage: responseData.currentPage,
-            pageSize: responseData.pageSize,
-          },
-        },
+        payload: tasks,
       });
 
       callback?.();
@@ -169,10 +140,6 @@ export const filterTasks =
     }
   };
 
-/**
- * Create a new task
- * @param taskData - Task data to create
- */
 export const createTask =
   (taskData: NewTaskDto) => async (dispatch: AppDispatch) => {
     try {
@@ -180,11 +147,11 @@ export const createTask =
 
       dispatch({
         type: ADD_TASK,
-        payload: response.data.payload, // this should be a full ITask object
+        payload: response.data, // Direct task object
       });
 
       toast.success("Task created successfully!");
-      return { success: true, task: response.data.payload };
+      return { success: true, task: response.data };
     } catch (error) {
       console.error("Error creating task:", error);
       const axiosError = error as AxiosError<{
@@ -202,11 +169,6 @@ export const createTask =
     }
   };
 
-/**
- * Get single task by ID
- * @param taskId - ID of the task to fetch
- * @param onSuccess - Optional success callback
- */
 export const getSingleTask =
   (taskId: string, onSuccess?: () => void) => async (dispatch: AppDispatch) => {
     try {
@@ -214,11 +176,11 @@ export const getSingleTask =
 
       dispatch({
         type: SET_SINGLE_TASK,
-        payload: response.data.payload,
+        payload: response.data, // Direct task object
       });
 
       onSuccess?.();
-      return { success: true, task: response.data.payload };
+      return { success: true, task: response.data };
     } catch (error) {
       console.error("Error fetching task:", error);
       const axiosError = error as AxiosError<{
@@ -234,11 +196,6 @@ export const getSingleTask =
     }
   };
 
-/**
- * Update an existing task
- * @param taskId - ID of the task to update
- * @param taskData - Updated task data
- */
 export const updateTask =
   (taskId: number, taskData: Partial<ITask>) =>
   async (dispatch: AppDispatch) => {
@@ -247,11 +204,11 @@ export const updateTask =
 
       dispatch({
         type: UPDATE_TASK,
-        payload: response.data.payload,
+        payload: response.data, // Direct task object
       });
 
       toast.success("Task updated successfully!");
-      return { success: true, task: response.data.payload };
+      return { success: true, task: response.data };
     } catch (error) {
       console.error("Error updating task:", error);
       const axiosError = error as AxiosError<{
@@ -269,10 +226,6 @@ export const updateTask =
     }
   };
 
-/**
- * Delete a task
- * @param taskId - ID of the task to delete
- */
 export const deleteTask = (taskId: string) => async (dispatch: AppDispatch) => {
   try {
     await Api.delete(`/tasks/${taskId}`);
@@ -299,14 +252,8 @@ export const deleteTask = (taskId: string) => async (dispatch: AppDispatch) => {
   }
 };
 
-/**
- * Update task status
- * @param taskId - ID of the task to update
- * @param newStatus - New status (TODO, IN_PROGRESS, DONE)
- */
 export const updateTaskStatus =
-  (taskId: string, newStatus: "TODO" | "IN_PROGRESS" | "DONE") =>
-  async (dispatch: AppDispatch) => {
+  (taskId: string, newStatus: TaskStatus) => async (dispatch: AppDispatch) => {
     try {
       const response = await Api.patch(`/tasks/${taskId}/status`, {
         status: newStatus,
@@ -314,11 +261,11 @@ export const updateTaskStatus =
 
       dispatch({
         type: UPDATE_TASK,
-        payload: response.data.payload,
+        payload: response.data, // Direct task object
       });
 
       toast.success("Task status updated!");
-      return { success: true, task: response.data.payload };
+      return { success: true, task: response.data };
     } catch (error) {
       console.error("Error updating task status:", error);
       const axiosError = error as AxiosError<{

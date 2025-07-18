@@ -22,8 +22,8 @@ export interface IUser {
 
 export interface ITask {
   id: number;
-  title: string | null;
-  description: string | null;
+  title: string;
+  description: string;
   status: TaskStatus;
   priority: TaskPriority;
   assignee: IUser | null;
@@ -38,8 +38,6 @@ export interface ITaskFilterParams {
   priority?: TaskPriority;
   assigneeId?: string | null;
   search?: string;
-  page?: number;
-  size?: number;
   sortBy?: string;
   q?: string; // Alternative to 'search' for consistency
 }
@@ -61,15 +59,6 @@ export interface UpdateTaskDto {
   priority?: TaskPriority;
   dueDate?: string | null;
   assigneeId?: string | null;
-}
-
-// Response interfaces for paginated results
-export interface PaginatedTaskResponse {
-  tasks: ITask[];
-  total: number;
-  page: number;
-  size: number;
-  hasNext: boolean;
 }
 
 // For task assignment changes

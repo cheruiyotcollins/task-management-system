@@ -58,11 +58,10 @@ public class TaskServiceImpl implements TaskService {
         task.setTitle(request.title());
         task.setDescription(request.description());
         task.setPriority(request.priority());
-        task.setStatus(TaskStatus.TODO);
+        task.setStatus(request.status());
         task.setCreator(creator);
         task.setCreatedAt(LocalDateTime.now());
         task.setUpdatedAt(LocalDateTime.now());
-
         if (request.assigneeId() != null) {
             User assignee = userRepository.findById(request.assigneeId())
                     .orElseThrow(() -> new ResourceNotFoundException("Assignee not found"));
