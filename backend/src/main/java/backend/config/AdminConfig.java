@@ -35,16 +35,39 @@ public class AdminConfig implements CommandLineRunner {
             Role adminRole = roleRepository.findByName(RoleName.ADMIN).orElse(null);
             if (adminRole == null) {
                 log.error("ROLE_ADMIN does not exist in the database. Please insert it manually.");
-                return;  // Exit early if the role is not found
+                return;
             }
-            User user = new User();
-            user.setRole(adminRole);
-            user.setFullName("Admin");
-            user.setEmail("admin@gmail.com");
-            user.setUsername("admin@gmail.com");
-            user.setPassword(passwordEncoder.encode("password"));
-            userRepository.save(user);
-            log.info("Admin user created with first login flag set to true.");
+
+            User adminUser = new User();
+            adminUser.setRole(adminRole);
+            adminUser.setFullName("Admin");
+            adminUser.setEmail("admin@gmail.com");
+            adminUser.setUsername("admin@gmail.com");
+            adminUser.setPassword(passwordEncoder.encode("password"));
+            userRepository.save(adminUser);
+            log.info("Admin user created with email: admin@gmail.com");
+        }
+
+        log.info("Checking if a regular user exists");
+
+        boolean noUsersExist = userRepository.countByRole_Name(RoleName.USER) == 0;
+
+        if (noUsersExist) {
+            // Check if the ROLE_USER role exists
+            Role userRole = roleRepository.findByName(RoleName.USER).orElse(null);
+            if (userRole == null) {
+                log.error("ROLE_USER does not exist in the database. Please insert it manually.");
+                return;
+            }
+
+            User regularUser = new User();
+            regularUser.setRole(userRole);
+            regularUser.setFullName("Test User");
+            regularUser.setEmail("user@gmail.com");
+            regularUser.setUsername("user@gmail.com");
+            regularUser.setPassword(passwordEncoder.encode("password"));
+            userRepository.save(regularUser);
+            log.info("Regular user created with email: user@gmail.com");
         }
     }
 }
