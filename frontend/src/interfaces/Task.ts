@@ -21,23 +21,16 @@ export interface IUser {
 }
 
 export interface ITask {
-  id: string;
-  title: string;
-  description: string;
+  id: number;
+  title: string | null;
+  description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
-  dueDate?: string | null;
+  assignee: IUser | null;
+  creator: IUser;
   createdAt: string;
   updatedAt: string;
-  creatorId: string;
-  assigneeId?: string | null;
-  assignee?: IUser | null;
-  creator?: IUser;
-  // Additional fields from your first interface
-  assignedTo?: string; // Consider using assigneeId instead
-  createdBy?: string; // Consider using creatorId instead
-  assigneeName?: string; // Consider using assignee.username instead
-  createdByName?: string; // Consider using creator.username instead
+  dueDate?: string | null;
 }
 
 export interface ITaskFilterParams {

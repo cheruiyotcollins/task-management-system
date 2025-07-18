@@ -1,5 +1,12 @@
+import { useNavigate } from "react-router-dom";
 import { debounce } from "lodash";
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react"; // Import useMemo
 import { useAppDispatch, useAppSelector } from "../../store/hook";
 import Loader from "../../common/components/Loader";
 import { ITaskFilterParams, ITask } from "../../interfaces/Task";
@@ -54,17 +61,26 @@ const Tasks: React.FC = () => {
     (state: RootState) => state.tasks.tasks || []
   );
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
-  // Filter parameters
-  const initialFilterParams: ITaskFilterParams = {
-    q: "",
-    status: undefined,
-    assigneeId: isAdmin ? undefined : user?.id,
-    sortBy: "",
-  };
+  // Memoize initialFilterParams to prevent re-creation on every render
+  const initialFilterParams: ITaskFilterParams = useMemo(() => {
+    return {
+      q: "",
+      status: undefined,
+      assigneeId: isAdmin ? undefined : user?.id,
+      sortBy: "",
+    };
+  }, [isAdmin, user?.id]); // Dependencies for useMemo
 
   const [filterParams, setFilterParams] =
     useState<ITaskFilterParams>(initialFilterParams);
+
+  // Effect to reset filterParams when initialFilterParams changes (e.g., user logs in/out, role changes)
+  // This ensures filters are correctly applied based on the new user/admin state.
+  useEffect(() => {
+    setFilterParams(initialFilterParams);
+  }, [initialFilterParams]);
 
   // Debounced search handler
   const handleSearch = useRef(
@@ -93,7 +109,7 @@ const Tasks: React.FC = () => {
     setFilterParams(initialFilterParams);
     setSearchQuery("");
     setError(null);
-  }, [initialFilterParams]);
+  }, [initialFilterParams]); // Depend on memoized initialFilterParams
 
   const handleSort = useCallback((sort: string) => {
     setFilterParams((prev) => ({ ...prev, sortBy: sort }));
@@ -113,45 +129,60 @@ const Tasks: React.FC = () => {
     }));
   }, []);
 
-  // Data fetching
+  // Data fetching - runs once on mount and when user/isAdmin changes
   useEffect(() => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    const abortController = new AbortController();
+
     const fetchData = async () => {
       setLoading(true);
       setError(null);
-      try {
-        await dispatch(getTasks());
 
-        if (isAdmin) {
-          await dispatch(
-            fetchAllUsers(
-              0, // page
-              100, // size
-              "fullName,asc", // sort
-              "" // searchQuery (optional)
-            )
-          );
+      try {
+        if (!user) return; // Double check user existence
+
+        // Fetch tasks
+        // Removed `status` and `assigneeId` from here, as initialFilterParams will handle initial filtering
+        await dispatch(getTasks({ signal: abortController.signal }));
+
+        // Only fetch users if admin AND authenticated
+        if (isAdmin && user) {
+          await dispatch(fetchAllUsers({ signal: abortController.signal }));
         }
 
-        // Initial filter after tasks load
+        // After initial data fetch, apply initial filters
+        // This ensures filterTasks is called only once after the initial getTasks
         dispatch(filterTasks(initialFilterParams));
       } catch (err) {
         setError("Failed to load tasks. Please try again.");
         console.error("Task fetch error:", err);
       } finally {
-        setLoading(false);
+        if (!abortController.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchData();
-  }, [dispatch, isAdmin, initialFilterParams]);
 
-  // Apply filters when params change
+    return () => {
+      abortController.abort();
+    };
+  }, [dispatch, isAdmin, user, navigate, initialFilterParams]); // Add initialFilterParams here
+
+  // Apply filters when filterParams change
   useEffect(() => {
+    // Only dispatch filterTasks if allTasks has data, preventing filtering an empty list repeatedly
+    // And also to ensure filtering only happens after the initial getTasks has populated allTasks
     if (allTasks.length > 0) {
       dispatch(filterTasks(filterParams));
     }
     setSearchQuery(filterParams.q || "");
-  }, [dispatch, filterParams, allTasks.length]);
+  }, [dispatch, filterParams, allTasks.length]); // Keep allTasks.length to re-filter if the source data changes
 
   // Group tasks by status for kanban view
   const groupedTasks = {
@@ -169,11 +200,6 @@ const Tasks: React.FC = () => {
     ),
     [TaskStatus.DONE]: <FaCheckCircle className="text-green-500" />,
   };
-
-  // Memoized task count display
-  const taskCountDisplay = `${tasks.length} ${
-    tasks.length === 1 ? "task" : "tasks"
-  }`;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">

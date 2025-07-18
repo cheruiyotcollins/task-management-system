@@ -49,12 +49,7 @@ const Filters: React.FC<Props> = ({
   const [searchValue, setSearchValue] = useState<string>(filterParams.q || "");
 
   useEffect(() => {
-    const page = 0;
-    const size = 10;
-    const sort = "fullName,ASC";
-    const searchQuery = "";
-
-    dispatch(fetchAllUsers(page, size, sort, searchQuery));
+    dispatch(fetchAllUsers());
   }, [dispatch]);
 
   const debouncedHandleSearch = useRef(

@@ -37,7 +37,7 @@ const AddTaskPage: React.FC = () => {
     const sort = "fullName,ASC";
     const searchQuery = "";
 
-    dispatch(fetchAllUsers(page, size, sort, searchQuery));
+    dispatch(fetchAllUsers());
   }, [dispatch]);
 
   const handleInputChange = (

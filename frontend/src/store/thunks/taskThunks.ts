@@ -9,13 +9,13 @@ interface CreateTaskPayload {
   description: string;
   status?: "TODO" | "IN_PROGRESS" | "DONE";
   priority?: TaskPriority;
-  assigneeId?: string;
+  assigneeId?: string | null;
   creatorId: string;
 }
 
 export const createTask = createAsyncThunk<
-  ITask, // Return type of the payload creator
-  CreateTaskPayload, // First argument to the payload creator
+  ITask,
+  CreateTaskPayload,
   {
     state: RootState;
     rejectValue: string;
@@ -28,19 +28,19 @@ export const createTask = createAsyncThunk<
       return rejectWithValue("No authentication token found");
     }
 
-    const response = await Api.post("/tasks", taskData, {
+    const payload: CreateTaskPayload = {
+      ...taskData,
+      assigneeId: taskData.assigneeId || undefined,
+    };
+
+    const response = await Api.post("/tasks", payload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    if (response.data.status === "OK") {
-      return response.data.payload as ITask;
-    } else {
-      return rejectWithValue(
-        response.data.description || "Failed to create task"
-      );
-    }
+    // Directly return the task object
+    return response.data as ITask;
   } catch (err: any) {
     console.error("Create task error:", err);
     return rejectWithValue(

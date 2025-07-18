@@ -36,7 +36,8 @@ const TaskDetails: React.FC = () => {
 
   const toggleBookmarkStatus = () => {
     if (task?.id) {
-      dispatch(toggleBookmark(task.id));
+      dispatch(toggleBookmark(task.id.toString()));
+
       setIsBookmarked(!isBookmarked);
       toast.info(
         !isBookmarked ? "Added to favorites" : "Removed from favorites"
@@ -45,14 +46,16 @@ const TaskDetails: React.FC = () => {
   };
 
   const shareTask = () => {
+    if (!task) return; // Early return if task is null/undefined
+
+    const shareData = {
+      title: task.title || "Untitled Task", // Provide fallback for null title
+      text: `Check out this task: ${task.title || ""}`,
+      url: window.location.href,
+    };
+
     if (navigator.share) {
-      navigator
-        .share({
-          title: task?.title,
-          text: `Check out this task: ${task?.title}`,
-          url: window.location.href,
-        })
-        .catch(console.error);
+      navigator.share(shareData).catch(console.error);
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.info("Link copied to clipboard!");
@@ -132,12 +135,14 @@ const TaskDetails: React.FC = () => {
               <p>{task?.description || "No description provided."}</p>
             </div>
 
-            {task?.assignedTo && (
+            {task?.assignee && (
               <div className="mt-6">
                 <h2 className="text-sm font-semibold text-gray-700 mb-1">
                   Assigned To
                 </h2>
-                <p className="text-gray-600">{task.assignedTo}</p>
+                <p className="text-gray-600">
+                  {task.assignee.username} {/* or task.assignee.email */}
+                </p>
               </div>
             )}
 

@@ -17,25 +17,17 @@ import java.util.Collection;
 @Builder
 public class LoginResponseDto {
     private String accessToken;
-    private String refreshToken;
-    private boolean firstLogin;
-    private Collection<Role> roles;
+    private Role role;
     private Object object;
     private HttpStatus status;
     private String message;
     private CurrentUserDto currentUser;
 
 
-    public LoginResponseDto(String accessToken, String refreshToken, boolean firstLogin, CurrentUserDto currentUser) {
-        this.firstLogin=firstLogin;
+    public LoginResponseDto(String accessToken,  CurrentUserDto currentUser) {
+
         this.accessToken=accessToken;
-        this.refreshToken = refreshToken;
+        ;
         this.currentUser= currentUser;
-    }
-    public LoginResponseDto(String accessToken, String refreshToken, boolean firstLogin, int success, String message) {
-        this.firstLogin=firstLogin;
-        this.accessToken=accessToken;
-        this.refreshToken = refreshToken;
-        this.message=message;
     }
 }

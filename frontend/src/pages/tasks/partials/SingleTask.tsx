@@ -74,7 +74,12 @@ const SingleTask: React.FC<SingleTaskProps> = ({ task, isAdmin }) => {
     try {
       await dispatch(
         updateTask(task.id, {
-          assigneeId: user.id,
+          assignee: {
+            id: user.id,
+            username: "",
+            email: "",
+            role: "USER",
+          }, // Send the full assignee object
           updatedAt: new Date().toISOString(),
         })
       );

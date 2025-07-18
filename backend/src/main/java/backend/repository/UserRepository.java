@@ -14,14 +14,6 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
     Optional<User> findByEmail(String email);
 
-//    @EntityGraph(attributePaths = "roles")
-//    Optional<User> findByUsernameOrEmail(String username, String email);
-
-    Optional<User> findByUsername(String username);
-
-    Boolean existsByUsername(String username);
-
-    Boolean existsByEmail(String email);
 
     @Query("SELECT u FROM User u WHERE u.email = :email OR u.username = :username")
     List<User> findConflictingUsers(
@@ -30,7 +22,6 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
             @Param("contact") String contact
     );
 
-    @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r.name = :roleName")
-    int countByRoleName(@Param("roleName") RoleName roleName);
+    int countByRole_Name(RoleName roleName);
 
 }

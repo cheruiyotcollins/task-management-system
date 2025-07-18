@@ -21,7 +21,7 @@ class Api {
   private requestQueue: ((token: string | null) => void)[];
 
   constructor() {
-    const baseURL = "http://localhost:9002/api/v1";
+    const baseURL = "http://localhost:9002/api";
     const timeout = 45000;
 
     this.accessToken = localStorage.getItem("token");

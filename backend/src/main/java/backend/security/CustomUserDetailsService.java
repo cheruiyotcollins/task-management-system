@@ -20,6 +20,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Transactional
     public UserDetails loadUserByUsername(String email)
             throws UsernameNotFoundException {
+        System.out.println("this is the email:::::::::::::::::::::::::::::;"+email);
         if (!email.contains("@")) {
             throw new UsernameNotFoundException("This is not a valid email");
         }
