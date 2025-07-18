@@ -21,15 +21,18 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "title")
     private String title;
 
+    @Column(name = "description")
     private String description;
 
     @Enumerated(EnumType.STRING)
-    private TaskStatus status;
+    @Column(name = "priority")
+    private TaskPriority priority;
 
     @Enumerated(EnumType.STRING)
-    private TaskPriority priority;
+    private TaskStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignee_id")

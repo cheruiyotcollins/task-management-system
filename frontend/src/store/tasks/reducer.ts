@@ -8,6 +8,7 @@ import {
   SET_ERROR,
 } from "./type";
 import { ITask } from "../../interfaces/Task";
+
 interface IAction<T = any> {
   type: string;
   payload?: T;
@@ -15,21 +16,9 @@ interface IAction<T = any> {
   meta?: any;
 }
 
-interface IPagination {
-  totalPages: number;
-  totalElements: number;
-  currentPage: number;
-  pageSize: number;
-}
-
-interface IPaginatedTasks {
-  tasks: ITask[];
-  pagination?: IPagination;
-}
-
 interface ITasksState {
   tasks: ITask[];
-  filteredTasks: IPaginatedTasks;
+  filteredTasks: ITask[];
   singleTask: ITask | null;
   loading: boolean;
   error: string | null;
@@ -37,10 +26,7 @@ interface ITasksState {
 
 const initialState: ITasksState = {
   tasks: [],
-  filteredTasks: {
-    tasks: [],
-    pagination: undefined,
-  },
+  filteredTasks: [],
   singleTask: null,
   loading: false,
   error: null,
@@ -55,20 +41,20 @@ const TasksReducer = (state = initialState, action: IAction): ITasksState => {
       return {
         ...state,
         tasks: action.payload as ITask[],
+        filteredTasks: action.payload as ITask[],
         loading: false,
       };
 
-    case SET_FILTERED_TASKS: {
-      const payload = action.payload;
+    case SET_FILTERED_TASKS:
+      console.log(
+        "SET_FILTERED_TASKS reducer: Incoming payload:",
+        action.payload
+      );
       return {
         ...state,
-        filteredTasks: {
-          tasks: Array.isArray(payload) ? payload : payload?.tasks || [],
-          pagination: Array.isArray(payload) ? undefined : payload?.pagination,
-        },
+        filteredTasks: action.payload as ITask[],
         loading: false,
       };
-    }
 
     case SET_SINGLE_TASK:
       return {
@@ -78,9 +64,11 @@ const TasksReducer = (state = initialState, action: IAction): ITasksState => {
       };
 
     case ADD_TASK:
+      const newTask = action.payload as ITask;
       return {
         ...state,
-        tasks: [action.payload as ITask, ...state.tasks],
+        tasks: [newTask, ...state.tasks],
+        filteredTasks: [newTask, ...state.filteredTasks], // Add to both arrays
         loading: false,
       };
 
@@ -89,6 +77,9 @@ const TasksReducer = (state = initialState, action: IAction): ITasksState => {
       return {
         ...state,
         tasks: state.tasks.map((task) =>
+          task.id === updatedTask.id ? updatedTask : task
+        ),
+        filteredTasks: state.filteredTasks.map((task) =>
           task.id === updatedTask.id ? updatedTask : task
         ),
         singleTask:
@@ -100,10 +91,11 @@ const TasksReducer = (state = initialState, action: IAction): ITasksState => {
     }
 
     case DELETE_TASK: {
-      const taskId = action.payload as number; // Changed from string to number
+      const taskId = action.payload as number;
       return {
         ...state,
         tasks: state.tasks.filter((task) => task.id !== taskId),
+        filteredTasks: state.filteredTasks.filter((task) => task.id !== taskId),
         singleTask: state.singleTask?.id === taskId ? null : state.singleTask,
         loading: false,
       };

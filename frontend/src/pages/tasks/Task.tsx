@@ -6,7 +6,7 @@ import React, {
   useState,
   useCallback,
   useMemo,
-} from "react"; // Import useMemo
+} from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hook";
 import Loader from "../../common/components/Loader";
 import { ITaskFilterParams, ITask } from "../../interfaces/Task";
@@ -19,7 +19,6 @@ import SortOptions from "./partials/SortOptions";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiFilter,
-  FiChevronLeft,
   FiChevronRight,
   FiSearch,
   FiHome,
@@ -34,7 +33,6 @@ import { TaskStatus } from "../../interfaces/Task";
 import { fetchAllUsers } from "../../store/auth/actions";
 
 const Tasks: React.FC = () => {
-  // Authentication context - using the custom hook directly
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
 
@@ -47,37 +45,37 @@ const Tasks: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
-  // Redux state with proper fallbacks
-  const tasksState = useAppSelector(
-    (state: RootState) => state.tasks.filteredTasks
+  // Redux state - simplified selectors
+  const tasks = useAppSelector(
+    (state: RootState) => state.tasks.filteredTasks || []
   );
-
-  // Get tasks array regardless of format
-  const tasks = Array.isArray(tasksState)
-    ? tasksState
-    : tasksState?.tasks || [];
-
   const allTasks = useAppSelector(
     (state: RootState) => state.tasks.tasks || []
+  );
+  console.log(
+    "Tasks component (derived 'tasks' variable):",
+    tasks,
+    "Type:",
+    typeof tasks,
+    "Is Array:",
+    Array.isArray(tasks)
   );
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  // Memoize initialFilterParams to prevent re-creation on every render
+  // Simplified filter params without pagination
   const initialFilterParams: ITaskFilterParams = useMemo(() => {
     return {
       q: "",
       status: undefined,
-      assigneeId: isAdmin ? undefined : user?.id,
+      assigneeId: isAdmin ? undefined : user?.id || null, // Include null for unassigned tasks
       sortBy: "",
     };
-  }, [isAdmin, user?.id]); // Dependencies for useMemo
+  }, [isAdmin, user?.id]);
 
   const [filterParams, setFilterParams] =
     useState<ITaskFilterParams>(initialFilterParams);
 
-  // Effect to reset filterParams when initialFilterParams changes (e.g., user logs in/out, role changes)
-  // This ensures filters are correctly applied based on the new user/admin state.
   useEffect(() => {
     setFilterParams(initialFilterParams);
   }, [initialFilterParams]);
@@ -109,7 +107,7 @@ const Tasks: React.FC = () => {
     setFilterParams(initialFilterParams);
     setSearchQuery("");
     setError(null);
-  }, [initialFilterParams]); // Depend on memoized initialFilterParams
+  }, [initialFilterParams]);
 
   const handleSort = useCallback((sort: string) => {
     setFilterParams((prev) => ({ ...prev, sortBy: sort }));
@@ -129,7 +127,7 @@ const Tasks: React.FC = () => {
     }));
   }, []);
 
-  // Data fetching - runs once on mount and when user/isAdmin changes
+  // Data fetching
   useEffect(() => {
     if (!user) {
       navigate("/login");
@@ -143,19 +141,12 @@ const Tasks: React.FC = () => {
       setError(null);
 
       try {
-        if (!user) return; // Double check user existence
-
-        // Fetch tasks
-        // Removed `status` and `assigneeId` from here, as initialFilterParams will handle initial filtering
         await dispatch(getTasks({ signal: abortController.signal }));
 
-        // Only fetch users if admin AND authenticated
         if (isAdmin && user) {
           await dispatch(fetchAllUsers({ signal: abortController.signal }));
         }
 
-        // After initial data fetch, apply initial filters
-        // This ensures filterTasks is called only once after the initial getTasks
         dispatch(filterTasks(initialFilterParams));
       } catch (err) {
         setError("Failed to load tasks. Please try again.");
@@ -172,25 +163,37 @@ const Tasks: React.FC = () => {
     return () => {
       abortController.abort();
     };
-  }, [dispatch, isAdmin, user, navigate, initialFilterParams]); // Add initialFilterParams here
+  }, [dispatch, isAdmin, user, navigate, initialFilterParams]);
 
   // Apply filters when filterParams change
   useEffect(() => {
-    // Only dispatch filterTasks if allTasks has data, preventing filtering an empty list repeatedly
-    // And also to ensure filtering only happens after the initial getTasks has populated allTasks
     if (allTasks.length > 0) {
       dispatch(filterTasks(filterParams));
     }
     setSearchQuery(filterParams.q || "");
-  }, [dispatch, filterParams, allTasks.length]); // Keep allTasks.length to re-filter if the source data changes
+  }, [dispatch, filterParams, allTasks.length]);
 
   // Group tasks by status for kanban view
+  function isTaskWrapper(obj: any): obj is { tasks: ITask[] } {
+    return obj && typeof obj === "object" && "tasks" in obj;
+  }
+
+  // Usage
+  const tasksArray = isTaskWrapper(tasks)
+    ? tasks.tasks
+    : Array.isArray(tasks)
+    ? tasks
+    : [];
   const groupedTasks = {
-    [TaskStatus.TODO]: tasks.filter((task) => task.status === TaskStatus.TODO),
-    [TaskStatus.IN_PROGRESS]: tasks.filter(
+    [TaskStatus.TODO]: tasksArray.filter(
+      (task) => task.status === TaskStatus.TODO
+    ),
+    [TaskStatus.IN_PROGRESS]: tasksArray.filter(
       (task) => task.status === TaskStatus.IN_PROGRESS
     ),
-    [TaskStatus.DONE]: tasks.filter((task) => task.status === TaskStatus.DONE),
+    [TaskStatus.DONE]: tasksArray.filter(
+      (task) => task.status === TaskStatus.DONE
+    ),
   };
 
   const statusIcons = {
@@ -415,7 +418,7 @@ const Tasks: React.FC = () => {
                   }
                 >
                   <AnimatePresence mode="wait">
-                    {!Array.isArray(tasks) || tasks.length === 0 ? (
+                    {tasks.length === 0 ? (
                       <motion.div
                         key="no-tasks"
                         initial={{ opacity: 0 }}
@@ -433,14 +436,11 @@ const Tasks: React.FC = () => {
                           <FaSadTear className="w-16 h-16 text-indigo-400 mb-4" />
                         </motion.div>
                         <h3 className="text-2xl font-medium text-gray-900 mb-2">
-                          {!Array.isArray(tasks)
-                            ? "Oops! Something went wrong"
-                            : "No tasks found"}
+                          No tasks found
                         </h3>
                         <p className="text-gray-500 mb-6 max-w-md">
-                          {!Array.isArray(tasks)
-                            ? "We're having trouble loading tasks. Please try again later."
-                            : "We couldn't find any tasks matching your criteria. Try adjusting your filters."}
+                          We couldn't find any tasks matching your criteria. Try
+                          adjusting your filters.
                         </p>
                         <motion.button
                           whileHover={{ scale: 1.05 }}
@@ -448,7 +448,7 @@ const Tasks: React.FC = () => {
                           onClick={handleReset}
                           className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all"
                         >
-                          {!Array.isArray(tasks) ? "Retry" : "Reset Filters"}
+                          Reset Filters
                         </motion.button>
                       </motion.div>
                     ) : (
@@ -518,10 +518,7 @@ const Tasks: React.FC = () => {
         <FiFilter className="w-6 h-6" />
       </motion.button>
 
-      <CreateTaskModal
-        open={createModalOpen}
-        setOpen={setCreateModalOpen} // Use setOpen instead of onClose
-      />
+      <CreateTaskModal open={createModalOpen} setOpen={setCreateModalOpen} />
     </div>
   );
 };

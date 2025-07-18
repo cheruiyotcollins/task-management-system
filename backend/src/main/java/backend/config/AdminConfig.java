@@ -10,9 +10,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.util.HashSet;
-import java.util.Set;
-
 @Component
 @Slf4j
 public class AdminConfig implements CommandLineRunner {
@@ -40,12 +37,11 @@ public class AdminConfig implements CommandLineRunner {
                 log.error("ROLE_ADMIN does not exist in the database. Please insert it manually.");
                 return;  // Exit early if the role is not found
             }
-
             User user = new User();
             user.setRole(adminRole);
             user.setFullName("Admin");
             user.setEmail("admin@gmail.com");
-            user.setUsername("admin");
+            user.setUsername("admin@gmail.com");
             user.setPassword(passwordEncoder.encode("password"));
             userRepository.save(user);
             log.info("Admin user created with first login flag set to true.");

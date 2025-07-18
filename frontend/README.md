@@ -48,6 +48,34 @@ A modern task management application built with React, TypeScript, and Redux fea
 - Jest + React Testing Library
 - Husky git hooks
 
+**Here's a look at the beautiful dashboard:**
+
+![Dashboard Overview](images/dashboard.png "Main application dashboard")
+
+### Login
+
+Users can easily log in:
+
+![Login Screen](images/login.png)
+
+### Register
+
+Users can easily register to the system:
+
+![Login Screen](images/register.png)
+
+### Logout
+
+Users can logout:
+
+![Login Screen](images/logout.png)
+
+### User Profile
+
+Users can view their profile:
+
+![Login Screen](images/user_profile.png)
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -63,8 +91,8 @@ git clone https://github.com/cheruiyotcollins/task-management-system.git
 cd task-manager
 
 # Install dependencies
-npm install
+yarn install
 
 # Start development server
-npm start
+yarn start
 ```
