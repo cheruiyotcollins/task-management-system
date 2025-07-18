@@ -1,56 +1,70 @@
-## React Products APP
+# Task Manager
 
-- Simple APP to show how to use TypeScript and Redux.
-- Use [FakeStoreAPI](https://fakestoreapi.com/docs) to fetch the products and display them.
+![Task Manager Preview](screenshot.png)
 
-### Requirements:
+A modern task management application built with React, TypeScript, and Redux featuring authentication and real-time task management.
 
-- Nodejs
-- Yarn (as dependency manager) `npm i -g yarn`
+## ✨ Features
 
-##### Installation
+### 🔐 Authentication
 
-> The application can be installed using the following steps:
+- JWT-based login/logout flow
+- Protected routes with React Router
+- Session persistence
+- Form validation
 
-- Clone the repository: `git clone git@github.com:sadhakbj/React-products---2022.git app`
-- Change the directory to the cloned repository: `cd app`
-- Install dependencies: `yarn` `(npm install) if yarn is not installed`
-- Run the application: `yarn start`
-- Open the application: `http://localhost:3000`
-- Running tests: `yarn test`
+### 📋 Task Management
 
-#### Login Credentials:
+- Kanban board (Todo/In Progress/Done)
+- Create/Edit/Delete tasks
+- Assign tasks to users
+- Filter by:
+  - Status
+  - Priority
+  - Assignee
+- Search functionality
 
-- We have used FakeStoreAPI for the basic authentication.
-- You can use the following credentials to login: `email: "mor_2314", password: "83r5^_"`
-- Or you can use credentials from the [USERS API](https://fakestoreapi.com/users)
+### 🎨 UI Components
 
-#### Features:
+- Responsive design with Tailwind CSS
+- Modal dialogs
+- Toast notifications
+- Loading states
 
-> [Demo video](https://www.awesomescreenshot.com/video/7273651?key=5899809315d7f53cd60467c1e3ae8c8a)
+## 🛠 Tech Stack
 
-- Show a login page if the user is not logged in.
-- Allow user to login and logout.
-- Show a list of products with the details (title, price, rating, image)
-  - Search the products by name
-  - Sort the products by (rating, price asc to desc, price desc to asc)
-  - filter the products by categories
-    > Since, fakeStoreAPI does not provide functionalities like: `searching, sorting and filtering` we have used our own implementation in JavaScript.
-- Bookmark / un-bookmark a product
-- View the details of the product
+**Frontend**
 
-#### Tools Used:
+- React 18
+- TypeScript
+- Redux Toolkit
+- React Router v6
+- Tailwind CSS
+- HeadlessUI
 
-- [React](https://reactjs.org/)
-- [TypeScript](https://www.typescriptlang.org/)
-- [React-Router v6](https://reactrouter.com/docs/en/v6/getting-started/overview)
-- [TailwindCSS](https://tailwindcss.com/) - A utility-first CSS framework for styled components
-- [Redux](https://redux.js.org/)
-- [React-Redux](https://react-redux.js.org/)
-- [HeadlessUI for React](https://headlessui.dev/)
+**Tooling**
 
-#### Code Quality and formatting
+- ESLint + Prettier
+- Jest + React Testing Library
+- Husky git hooks
 
-- Code quality: [ESLint](https://eslint.org/)
-- Code formatting: [Prettier](https://prettier.io/)
-  > Make sure that you have prettier & eslint plugin installed for your IDE and settings is changed to format on save..
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js v16+
+- Yarn or npm
+
+### Installation
+
+```bash
+# Clone repository
+git clone https://github.com/cheruiyotcollins/task-management-system.git
+cd task-manager
+
+# Install dependencies
+npm install
+
+# Start development server
+npm start
+```
